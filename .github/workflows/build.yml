@@ -3,7 +3,11 @@ name: Build OpenSSL (Windows VS2026)
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    paths:
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/build.yml'
  
 jobs:
   build:
@@ -36,13 +40,9 @@ jobs:
         working-directory: ${{ env.OPENSSL_VERSION }}
         run: |
           $target = if ("${{ matrix.arch }}" -eq "x64") { "VC-WIN64A" } else { "VC-WIN32" }
-          $debugFlag = if ("${{ matrix.config }}" -eq "Debug") { "debug" } else { "" }
+          $debugFlag = if ("${{ matrix.config }}" -eq "Debug") { "--debug" } else { "--release" }
           $prefix = "${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}"
-          if ($debugFlag) {
-            perl Configure $target shared no-autoload-config $debugFlag --prefix=$prefix
-          } else {
-            perl Configure $target shared no-autoload-config --prefix=$prefix
-          }
+          perl Configure $target shared no-autoload-config $debugFlag --prefix=$prefix
 
       - name: Build OpenSSL
         working-directory: ${{ env.OPENSSL_VERSION }}
