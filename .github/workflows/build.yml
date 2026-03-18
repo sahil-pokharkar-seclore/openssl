@@ -35,6 +35,8 @@ jobs:
 
       - name: Setup MSVC (VS2026)
         uses: ilammy/msvc-dev-cmd@v1 # Update to VS2026 when action is available
+        with:
+          arch: ${{ matrix.arch }}
 
       - name: Configure OpenSSL
         working-directory: ${{ env.OPENSSL_VERSION }}
