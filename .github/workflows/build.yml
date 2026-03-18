@@ -1,0 +1,56 @@
+name: Build OpenSSL (Windows VS2026)
+ 
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+ 
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      OPENSSL_VERSION: openssl-3.0.15
+    strategy:
+      matrix:
+        arch: [x86, x64]
+        config: [Release, Debug]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Perl
+        run: choco install strawberryperl -y
+
+      - name: Install NASM
+        run: choco install nasm -y
+
+      - name: Download OpenSSL
+        run: |
+          curl -LO https://www.openssl.org/source/%OPENSSL_VERSION%.tar.gz
+          tar -xf %OPENSSL_VERSION%.tar.gz
+
+      - name: Setup MSVC (VS2026)
+        uses: ilammy/msvc-dev-cmd@v1 # Update to VS2026 when action is available
+
+      - name: Configure OpenSSL
+        working-directory: ${{ env.OPENSSL_VERSION }}
+        run: |
+          if [ "${{ matrix.arch }}" = "x64" ]; then \
+            perl Configure VC-WIN64A shared no-autoload-config ${{ matrix.config == 'Debug' && 'debug' || '' }} --prefix=${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}; \
+          else \
+            perl Configure VC-WIN32 shared no-autoload-config ${{ matrix.config == 'Debug' && 'debug' || '' }} --prefix=${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}; \
+          fi
+
+      - name: Build OpenSSL
+        working-directory: ${{ env.OPENSSL_VERSION }}
+        run: nmake
+
+      - name: Install OpenSSL
+        working-directory: ${{ env.OPENSSL_VERSION }}
+        run: nmake install
+
+      - name: Upload OpenSSL binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-windows-${{ matrix.arch }}-${{ matrix.config }}
+          path: openssl-install-${{ matrix.arch }}-${{ matrix.config }}
