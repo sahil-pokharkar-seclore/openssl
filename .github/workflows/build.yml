@@ -26,8 +26,8 @@ jobs:
 
       - name: Download OpenSSL
         run: |
-          curl -LO https://www.openssl.org/source/%OPENSSL_VERSION%.tar.gz
-          tar -xf %OPENSSL_VERSION%.tar.gz
+          curl -LO https://www.openssl.org/source/$env:OPENSSL_VERSION.tar.gz
+          tar -xf "$env:OPENSSL_VERSION.tar.gz"
 
       - name: Setup MSVC (VS2026)
         uses: ilammy/msvc-dev-cmd@v1 # Update to VS2026 when action is available
@@ -35,11 +35,14 @@ jobs:
       - name: Configure OpenSSL
         working-directory: ${{ env.OPENSSL_VERSION }}
         run: |
-          if [ "${{ matrix.arch }}" = "x64" ]; then \
-            perl Configure VC-WIN64A shared no-autoload-config ${{ matrix.config == 'Debug' && 'debug' || '' }} --prefix=${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}; \
-          else \
-            perl Configure VC-WIN32 shared no-autoload-config ${{ matrix.config == 'Debug' && 'debug' || '' }} --prefix=${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}; \
-          fi
+          $target = if ("${{ matrix.arch }}" -eq "x64") { "VC-WIN64A" } else { "VC-WIN32" }
+          $debugFlag = if ("${{ matrix.config }}" -eq "Debug") { "debug" } else { "" }
+          $prefix = "${{ github.workspace }}/openssl-install-${{ matrix.arch }}-${{ matrix.config }}"
+          if ($debugFlag) {
+            perl Configure $target shared no-autoload-config $debugFlag --prefix=$prefix
+          } else {
+            perl Configure $target shared no-autoload-config --prefix=$prefix
+          }
 
       - name: Build OpenSSL
         working-directory: ${{ env.OPENSSL_VERSION }}
